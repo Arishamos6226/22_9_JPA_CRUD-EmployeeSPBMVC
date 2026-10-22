@@ -3,14 +3,15 @@ package ch.bbw.pr.employee.service;
 import ch.bbw.pr.employee.model.Department;
 import ch.bbw.pr.employee.model.Employee;
 import ch.bbw.pr.employee.repository.DepartmentRepository;
+import ch.bbw.pr.employee.repository.EmployeeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,18 +27,21 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class BusinessServiceTest {
 
-    @InjectMocks
     private BusinessService businessService;
     @Mock
     private DepartmentRepository departmentRepository;
     @Mock
+    private EmployeeRepository employeeRepository;
     private EmployeeService employeeService;
     private Department department;
     private Employee employee;
 
-    //KI gebraucht zum nicht immer wieder Instanzen neu zu schreiben
+    // Gemeinsame Testdaten vermeiden wiederholtes Erstellen derselben Objekte.
     @BeforeEach
     void setUp() {
+        employeeService = new EmployeeService(employeeRepository, departmentRepository);
+        businessService = new BusinessService(employeeService, departmentRepository);
+
         department = new Department();
         department.setId(1);
         department.setDescription("IT");
@@ -52,7 +56,7 @@ class BusinessServiceTest {
     @Test
     void createEmployeeWithDepartment() {
         when(departmentRepository.findByDescription("IT")).thenReturn(Optional.of(department));
-        when(employeeService.saveEmployee(any(Employee.class))).thenReturn(employee);
+        when(employeeRepository.save(any(Employee.class))).thenReturn(employee);
 
         Employee result = businessService.createEmployeeWithDepartment("Anna", "Schmid", "IT");
 
@@ -62,29 +66,52 @@ class BusinessServiceTest {
         assertEquals(department, result.getDepartment());
 
         verify(departmentRepository, times(1)).findByDescription("IT");
-        verify(employeeService, times(1)).saveEmployee(any(Employee.class));
+        verify(employeeRepository, times(1)).save(any(Employee.class));
+    }
+
+    @Test
+    void createEmployeeWithDepartmentDepartmentNotFound() {
+        when(departmentRepository.findByDescription("Finance")).thenReturn(Optional.empty());
+
+        assertThrows(NoSuchElementException.class,
+                () -> businessService.createEmployeeWithDepartment("Anna", "Schmid", "Finance"));
+
+        verify(employeeRepository, never()).save(any(Employee.class));
     }
 
     @Test
     void findEmployeesByDepartmentDescription() {
         when(departmentRepository.findByDescription("IT")).thenReturn(Optional.of(department));
-        when(employeeService.findEmployeesByDepartment(department)).thenReturn(List.of(employee));
+        when(employeeRepository.findByDepartment(department)).thenReturn(List.of(employee));
 
         List<Employee> result = businessService.findEmployeesByDepartmentDescription("IT");
 
         assertNotNull(result);
         assertEquals(1, result.size());
+        assertEquals(1, result.get(0).getId());
         assertEquals("Anna", result.get(0).getFirstname());
+        assertEquals("Schmid", result.get(0).getLastname());
+        assertEquals("IT", result.get(0).getDepartment().getDescription());
 
         verify(departmentRepository, times(1)).findByDescription("IT");
-        verify(employeeService, times(1)).findEmployeesByDepartment(department);
+        verify(employeeRepository, times(1)).findByDepartment(department);
+    }
+
+    @Test
+    void findEmployeesByDepartmentDescriptionDepartmentNotFound() {
+        when(departmentRepository.findByDescription("Finance")).thenReturn(Optional.empty());
+
+        List<Employee> result = businessService.findEmployeesByDepartmentDescription("Finance");
+
+        assertTrue(result.isEmpty());
+        verify(employeeRepository, never()).findByDepartment(any(Department.class));
     }
 
     @Test
     void transferEmployeeToDepartment() {
-        when(employeeService.getEmployeeById(1)).thenReturn(Optional.of(employee));
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(employee));
         when(departmentRepository.findByDescription("HR")).thenReturn(Optional.of(new Department(2, "HR")));
-        when(employeeService.saveEmployee(any(Employee.class))).thenReturn(employee);
+        when(employeeRepository.save(any(Employee.class))).thenReturn(employee);
 
         boolean result = businessService.transferEmployeeToDepartment(1, "HR");
 
@@ -92,8 +119,31 @@ class BusinessServiceTest {
         assertEquals("HR", employee.getDepartment().getDescription());
         assertEquals(2, employee.getDepartment().getId());
 
-        verify(employeeService, times(1)).getEmployeeById(1);
+        verify(employeeRepository, times(1)).findById(1);
         verify(departmentRepository, times(1)).findByDescription("HR");
-        verify(employeeService, times(1)).saveEmployee(any(Employee.class));
+        verify(employeeRepository, times(1)).save(any(Employee.class));
+    }
+
+    @Test
+    void transferEmployeeToDepartmentEmployeeNotFound() {
+        when(employeeRepository.findById(99)).thenReturn(Optional.empty());
+        when(departmentRepository.findByDescription("HR")).thenReturn(Optional.of(new Department(2, "HR")));
+
+        boolean result = businessService.transferEmployeeToDepartment(99, "HR");
+
+        assertFalse(result);
+        verify(employeeRepository, never()).save(any(Employee.class));
+    }
+
+    @Test
+    void transferEmployeeToDepartmentDepartmentNotFound() {
+        when(employeeRepository.findById(1)).thenReturn(Optional.of(employee));
+        when(departmentRepository.findByDescription("Finance")).thenReturn(Optional.empty());
+
+        boolean result = businessService.transferEmployeeToDepartment(1, "Finance");
+
+        assertFalse(result);
+        assertEquals("IT", employee.getDepartment().getDescription());
+        verify(employeeRepository, never()).save(any(Employee.class));
     }
 }

@@ -119,6 +119,16 @@ class EmployeeServiceTest {
    }
 
    @Test
+   void addEmployeeToFirstDepartmentWithoutDepartment() {
+      when(departmentRepository.findAll()).thenReturn(List.of());
+
+      assertThrows(java.util.NoSuchElementException.class,
+            () -> employeeService.addEmployeeToFirstDepartment("Anna", "Schmid"));
+
+      verify(employeeRepository, never()).save(any(Employee.class));
+   }
+
+   @Test
    void getEmployeeById() {
       Employee emp = new Employee();
       emp.setId(1);
@@ -149,11 +159,22 @@ class EmployeeServiceTest {
       assertTrue(result.isPresent());
       assertEquals("Anna", result.get().getFirstname());
       assertEquals("Schmid", result.get().getLastname());
+      assertNull(result.get().getDepartment());
+      verify(employeeRepository, times(1)).findByLastname("Schmid");
+   }
+
+   @Test
+   void getEmployeeByNameNotFound() {
+      when(employeeRepository.findByLastname("Unbekannt")).thenReturn(List.of());
+
+      Optional<Employee> result = employeeService.getEmployeeByName("Unbekannt");
+
+      assertTrue(result.isEmpty());
+      verify(employeeRepository, times(1)).findByLastname("Unbekannt");
    }
 
    @Test
    void updateEmployeeLastname() {
-      // Arrange
       Employee emp = new Employee();
       emp.setId(1);
       emp.setFirstname("Anna");
@@ -168,21 +189,17 @@ class EmployeeServiceTest {
       when(employeeRepository.save(any(Employee.class))).thenReturn(updatedEmp);
       when(employeeRepository.findAll()).thenReturn(List.of(updatedEmp));
 
-      // Act
       Iterable<Employee> result = employeeService.updateEmployeeLastname("Schmid", "Müller");
       List<Employee> list = (List<Employee>) result;
 
-      // Assert
       assertEquals(1, list.size());
       assertEquals("Müller", list.get(0).getLastname());
 
-      // Verify
       verify(employeeRepository, times(1)).save(emp);
    }
 
    @Test
    void deleteEmployeeByLastname() {
-      // Arrange
       Employee emp = new Employee();
       emp.setId(1);
       emp.setFirstname("Anna");
@@ -191,7 +208,6 @@ class EmployeeServiceTest {
       when(employeeRepository.findByLastname("Schmid")).thenReturn(List.of(emp));
       when(employeeRepository.findAll()).thenReturn(List.of());
 
-      // Act
       Iterable<Employee> result = employeeService.deleteEmployeeByLastname("Schmid");
       List<Employee> list = (List<Employee>) result;
 
