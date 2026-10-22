@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <meta charset="UTF-8">
+        <title>Employee and Departments</title>
+        <link rel="stylesheet" href="/css/mvp.css">
+    </head>
+    <body>
+        <h1>Employee and Departments</h1>
+
+        <!-- List all Employees -->
+        <p>Find all employees: <a href="/findAll">click here</a></p>
+
+        <!-- Create employee with department -->
+        <form action="/createEmployeeWithDepartment" method="get">
+            <h3>Create Employee with Department</h3>
+            <label for="firstname">First Name:</label>
+            <input type="text" id="firstname" name="firstname" required>
+            <br>
+            <label for="lastname">Last Name:</label>
+            <input type="text" id="lastname" name="lastname" required>
+            <br>
+            <label for="departmentName">Department Name:</label>
+            <input type="text" id="departmentName" name="departmentName" required>
+            <br>
+            <button type="submit">Create Employee</button>
+        </form>
+
+        <!-- Find employees by department -->
+        <form action="/findEmployeesByDepartment" method="get">
+            <h3>Find Employees by Department</h3>
+            <label for="departmentDescription">Department Description:</label>
+            <input type="text" id="departmentDescription" name="departmentDescription" required>
+            <button type="submit">Find Employees</button>
+        </form>
+
+        <!-- Transfer employee to another department -->
+        <form action="/transferEmployee" method="get">
+            <h3>Transfer Employee to Another Department</h3>
+            <label for="employeeId">Employee ID:</label>
+            <input type="number" id="employeeId" name="employeeId" required>
+            <br>
+            <label for="newDepartmentDescription">New Department Description:</label>
+            <input type="text" id="newDepartmentDescription" name="newDepartmentDescription" required>
+            <br>
+            <button type="submit">Transfer Employee</button>
+        </form>
+
+        <!-- Read employee by id -->
+        <form action="/readById" method="get">
+            <h3>Read Employee by ID</h3>
+            <label for="id">ID:</label>
+            <input type="number" id="id" name="id" required>
+            <button type="submit">Read</button>
+        </form>
+
+        <!-- Read employee by lastname -->
+        <form action="/readByName" method="get">
+            <h3>Read Employee by Last Name</h3>
+            <label for="lastname">Last Name:</label>
+            <input type="text" id="lastname" name="lastname" required>
+            <button type="submit">Read</button>
+        </form>
+
+        <!-- Update employee's lastname -->
+        <form action="/update" method="get">
+            <h3>Update Employee Last Name</h3>
+            <label for="oldlastname">Old Last Name:</label>
+            <input type="text" id="oldlastname" name="oldlastname" required>
+            <br>
+            <label for="newlastname">New Last Name:</label>
+            <input type="text" id="newlastname" name="newlastname" required>
+            <br>
+            <button type="submit">Update</button>
+        </form>
+
+        <!-- Delete employee by lastname -->
+        <form action="/delete" method="get">
+            <h3>Delete Employee by Last Name</h3>
+            <label for="lastname_to_delete">Last Name:</label>
+            <input type="text" id="lastname_to_delete" name="lastname" required>
+            <button type="submit">Delete</button>
+        </form>
+
+        <div>
+            <label>Result:</label>
+        </div>
+        <textarea rows="15" cols="50" th:text="${information}"></textarea>
+        <div th:if="${error}">
+            <p style="color: red;" th:text="${error}"></p>
+        </div>
+    </body>
+</html>
